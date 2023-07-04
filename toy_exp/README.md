@@ -13,4 +13,4 @@ python train.py --pretrain False
 ```
 It would fine-tuned the model initialized with `./toy_exp/swiss.pt`.
 
-The code is adapted from [https://github.com/acids-ircam/diffusion_models](https://github.com/acids-ircam/diffusion_models).
+The diffusion model part of the code is adapted from [https://github.com/acids-ircam/diffusion_models](https://github.com/acids-ircam/diffusion_models).
