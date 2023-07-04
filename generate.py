@@ -25,15 +25,6 @@ def _map_gpu(gpu):
 
 
 def rescale(X, batch=True):
-    # if not batch:
-    #     # return X
-    #     # print(X.min(), X.max())
-    #     return (X - X.min()) / (X.max()-X.min())
-    #     # return (X - (-1)) / (2)
-    # else:
-    #     for i in range(X.shape[0]):
-    #         X[i] = rescale(X[i], batch=False)
-    #     return X
     return (X.detach().clone()+1)/2
 
 def std_normal(size):
@@ -520,10 +511,10 @@ def generate(output_name, model_path, model_config,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # dataset and model
-    parser.add_argument('-name', '--name', type=str, default = 'celeba64', choices=["cifar10", "lsun_bedroom", "lsun_church", "lsun_cat", "celeba64"],
+    parser.add_argument('-name', '--name', type=str, default = 'cifar10', choices=["cifar10", "celeba64"],
                         help='Name of experiment')
     parser.add_argument('-ema', '--ema', help='Whether use ema', default = True)
-
+    parser.add_argument('-pretrain', '--pretrain', help='Whether use pretrained model', default = True)
     # fast generation parameters
     parser.add_argument('-approxdiff', '--approxdiff', type=str, default = 'VAR', choices=['STD', 'STEP', 'VAR'], help='approximate diffusion process')
     parser.add_argument('-kappa', '--kappa', type=float, default=1.0, help='factor to be multiplied to sigma')
@@ -563,9 +554,17 @@ if __name__ == '__main__':
 
     else:
         raise NotImplementedError
-
-    output_name = '{}{}_{}{}_kappa{}finetune_generate'.format('ema_' if args.ema else '',
-                                             args.name, 
+    if args.pretrain:
+        output_name = '{}_{}{}_kappa{}_generate'.format(args.name, 
+                                             args.approxdiff,
+                                             variance_schedule,
+                                             kappa)
+    else:
+        output_name = '{}_{}{}_kappa{}_generate_finetune'.format(args.name, 
+                                             args.approxdiff,
+                                             variance_schedule,
+                                             kappa)
+    model_path = '{}_{}{}_kappa{}finetuned.pt'.format(args.name, 
                                              args.approxdiff,
                                              variance_schedule,
                                              kappa)
@@ -580,11 +579,10 @@ if __name__ == '__main__':
     n_exist = 0
     if n_exist < args.n_generate:
         print('start generating')
-        # model_path = os.path.join('checkpoints', 
-        #                         '{}diffusion_{}_model'.format('ema_' if args.ema else '', args.name), 
-        #                         'model.ckpt.pth')
-        model_path = os.path.join('./ema_celeba64_VAR10quadratic_kappa1.0finetuned_test.pt')
-        # model_path = './generated/ema_celeba64_VAR10quadratic_kappa0.5finetuned_0.5-5-5-adam-noscale64_newnew.pt'
+        if args.pretrain:
+            model_path = os.path.join('checkpoints', 
+                                    '{}diffusion_{}_model'.format('ema_' if args.ema else '', args.name), 
+                                    'model.ckpt.pth')
         generate(output_name, model_path, model_config, 
                 diffusion_config, args.approxdiff, generation_param, 
                 args.n_generate, args.batchsize, n_exist)

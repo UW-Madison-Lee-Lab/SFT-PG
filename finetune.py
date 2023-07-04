@@ -31,23 +31,9 @@ def _map_gpu(gpu):
 
 
 def rescale(X, batch=True):
-    # for plot
-    # if not batch:
-    #     # return X
-    #     return (X - (-1)) / (2)
-    #     # return (X - X.min()) / (X.max()-X.min())
-    # else:
-    #     for i in range(X.shape[0]):
-    #         X[i] = rescale(X[i], batch=False)
     return (X - (-1)) / (2)
 
 def rescale_train(X, batch = True):
-    # if not batch:
-    #     # return X
-    #     return (X - X.min()) / (X.max()-X.min())
-    # else:
-    #     for i in range(X.shape[0]):
-    #         X[i] = rescale_train(X[i], batch=False)
     return X
 
 
@@ -326,7 +312,7 @@ def VAR_log_prob(net, x_prev, x_next, t, x_prev_multiplier, theta_multiplier, st
 
     return log_prob
 
-def train_one_epoch(net, ema, dataloader, optimizer, f, v, optimizer_fstar, optimizer_v, continuous_steps, diffusion_hyperparams, size, user_defined_eta, kappa, args, train):
+def train_one_epoch(net, dataloader, optimizer, f, v, optimizer_fstar, optimizer_v, continuous_steps, diffusion_hyperparams, size, user_defined_eta, kappa, args, train, n_critic, n_generator):
     # buffer
     state_dict = {}
     state_dict['state'] = map_gpu(torch.FloatTensor())
@@ -334,8 +320,8 @@ def train_one_epoch(net, ema, dataloader, optimizer, f, v, optimizer_fstar, opti
     state_dict['timestep'] = map_gpu(torch.LongTensor())
     state_dict['final'] = map_gpu(torch.FloatTensor())
     n_steps = args.S
-    n_critic = 5
-    n_generator = 10
+    # n_critic = 5
+    # n_generator = 10
     # net.eval()
     # net.train()
 
@@ -437,18 +423,18 @@ def train_one_epoch(net, ema, dataloader, optimizer, f, v, optimizer_fstar, opti
                     print("val",val_loss.item())
                     print('norm', norm.item())
                     print('mean', output[:x_seq[-1].shape[0]].mean().item())
-        if (step+1) % 200 == 0:
-            save_image(make_grid(rescale(x_seq[-1])[:64]), fp=os.path.join('generated', '{}5-5-rms-noscale64-test.jpg'.format(output_name)))
+        # if (step+1) % 200 == 0:
+            # save_image(make_grid(rescale(x_seq[-1])[:64]), fp=os.path.join('generated', '{}_test_image.jpg'.format(output_name)))
         
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # dataset and model
-    parser.add_argument('-name', '--name', type=str, default = 'cifar10', choices=["cifar10", "lsun_bedroom", "lsun_church", "lsun_cat", "celeba64"],
+    parser.add_argument('-name', '--name', type=str, default = 'cifar10', choices=["cifar10", "celeba64"],
                         help='Name of experiment')
     parser.add_argument('-n_channels', '--n_channels', type = int, default = '3')
-    parser.add_argument('-img_shape', '--img_shape', type = int, default = '32')
+    parser.add_argument('-img_shape', '--img_shape', type = int, default = '32', choices = [32, 64])
     parser.add_argument('-ema', '--ema', help='Whether use ema', default = True)
 
     # fast generation parameters
@@ -457,14 +443,20 @@ if __name__ == '__main__':
     parser.add_argument('-S', '--S', type=int, default=10, help='number of steps')
     parser.add_argument('-schedule', '--schedule', type=str, choices=['linear', 'quadratic'], default = 'quadratic', help='noise level schedules')
 
-    # generation util
-    # parser.add_argument('-n', '--n_generate', type=int, help='Number of samples to generate', default = 50048)
+    # training parameters
     parser.add_argument('-dataset-path', '--dataset-path', type=str, default = './data')
     parser.add_argument('--n_epochs', type=int, help='Number of epochs', default = 200)
     parser.add_argument('-bs', '--batchsize', type=int, default=128, help='Batchsize of generation')
     parser.add_argument('-gpu', '--gpu', type=str, default='cuda', choices=['cuda']+[str(i) for i in range(16)], help='gpu device')
-    parser.add_argument("--local_rank", default=0, type=int)
-    parser.add_argument("--seed", default=112233, type=int)
+    parser.add_argument('-n_critic', type=int, default=5, help='number of critic updates per step')
+    parser.add_argument('-n_generator', type=int, default=10, help='number of generator updates per step')
+    
+    # learning rate
+    parser.add_argument('-lr', '--lr', type=float, default=1e-6, help='learning rate')
+    parser.add_argument('-v_lr', '--v_lr', type=float, default=1e-4, help='learning rate of value func')
+    parser.add_argument('-f_lr', '--f_lr', type=float, default=1e-4, help='learning rate of discriminator')
+    parser.add_argument('--local_rank', default=0, type=int)
+    parser.add_argument('--seed', default=112233, type=int)
 
     args = parser.parse_args()
 
@@ -491,8 +483,7 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError
 
-    output_name = '{}{}_{}{}_kappa{}'.format('ema_' if args.ema else '',
-                                             args.name, 
+    output_name = '{}_{}{}_kappa{}'.format(args.name, 
                                              args.approxdiff,
                                              variance_schedule,
                                              kappa)
@@ -526,6 +517,7 @@ if __name__ == '__main__':
         # checkpoint = torch.load(model_path, map_location='cpu')
         # net.load_state_dict(checkpoint)
         net = map_gpu(net)
+        # fix batchnorm for stable fine-tuning
         net.eval()
         # net.train()
         print('checkpoint successfully loaded')
@@ -537,15 +529,12 @@ if __name__ == '__main__':
         if args.local_rank == 0:
             print(f"Using distributed training on {ngpus} gpus.")
         args.batchsize = args.batchsize // ngpus
-        # print("actual batchsize:", args.batch_size)
         torch.distributed.init_process_group(backend="nccl", init_method="env://")
         net = DDP(net, device_ids=[args.local_rank], output_device=args.local_rank)
-        # add or not?
         f = DDP(f, device_ids=[args.local_rank], output_device=args.local_rank)
         v = DDP(v, device_ids=[args.local_rank], output_device=args.local_rank)
 
 
-    ema = ExponentialMovingAverage(net.parameters(), decay=0.995)
     # diffusion params
     user_defined_eta = generation_param["user_defined_eta"]
     continuous_steps = _precompute_VAR_steps(diffusion_hyperparams, user_defined_eta)
@@ -565,15 +554,17 @@ if __name__ == '__main__':
     )
 
     # optimizer
-    optimizer = torch.optim.Adam(net.parameters(), lr=1e-6)
-    optimizer_fstar = torch.optim.Adam(f.parameters(), lr=1e-4)
-    optimizer_v = torch.optim.Adam(v.parameters(), lr=1e-4)   
+    optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
+    optimizer_fstar = torch.optim.Adam(f.parameters(), lr=args.f_lr)
+    optimizer_v = torch.optim.Adam(v.parameters(), lr=args.v_lr)   
 
     # train
+    if not os.path.exists("generated"):
+        os.makedirs("generated")
     for epoch in range(args.n_epochs):
         if args.local_rank == 0:
             if epoch > 0:
-                # # with ema.average_parameters():
+                # generate 64 images for visualization
                 Xi, log_prob_list = VAR_sampling(net, (64, C, H, W),
                                 diffusion_hyperparams,
                                 user_defined_eta,
@@ -582,12 +573,13 @@ if __name__ == '__main__':
                 Xi = Xi[-1]
             
                 # save image
-
                 save_image(make_grid(rescale(Xi)[:64]), fp=os.path.join('generated', '{}.jpg'.format(output_name)))
-                torch.save(net.state_dict(), '{}finetuned_test.pt'.format(output_name))
-                # with ema.average_parameters():
-                    # torch.save(net.state_dict(), '{}finetuned_0.5-5-5-adam-ema.pt'.format(output_name))
+                
+                # save checkpoint
+                torch.save(net.state_dict(), '{}finetuned.pt'.format(output_name))
+
             else:
+                # generate 64 images for visualization
                 Xi, log_prob_list = VAR_sampling(net, (64, C, H, W),
                                 diffusion_hyperparams,
                                 user_defined_eta,
@@ -595,11 +587,11 @@ if __name__ == '__main__':
                                 continuous_steps=continuous_steps)
                 Xi = Xi[-1]
             
-                # # # # # save image
+                # save image at init
                 save_image(make_grid(rescale(Xi)[:64]), fp=os.path.join('generated', '{}init.jpg'.format(output_name)))
-                # # # torch.save(net.state_dict(), 'finetuned_ema_1.0.pt')
+            
             print('epoch', epoch)
 
-        train_one_epoch(net=net, ema = ema, dataloader = train_loader, optimizer = optimizer, f = f, v = v, optimizer_fstar = optimizer_fstar, optimizer_v = optimizer_v, continuous_steps = continuous_steps, diffusion_hyperparams = diffusion_hyperparams, size = (args.batchsize, C, H, W), user_defined_eta=user_defined_eta, kappa = kappa, args = args, train = (epoch >-1))
+        train_one_epoch(net=net, dataloader = train_loader, optimizer = optimizer, f = f, v = v, optimizer_fstar = optimizer_fstar, optimizer_v = optimizer_v, continuous_steps = continuous_steps, diffusion_hyperparams = diffusion_hyperparams, size = (args.batchsize, C, H, W), user_defined_eta=user_defined_eta, kappa = kappa, args = args, train = (epoch >-1), n_critic = args.n_critic, n_generator = args.n_generator)
 
 
