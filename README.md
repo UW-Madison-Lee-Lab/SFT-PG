@@ -10,7 +10,7 @@ Download pretrained models from [here](https://drive.google.com/file/d/1EuoxEVJw
 
 Download datasets from [here](https://drive.google.com/file/d/1fq0yQZS-jCcuYeMBXu-YXKmVL7QByYMb/view?usp=sharing) and unzip as `./data`.
 
-## Finetuning
+## Fine-tuning
 For CIFAR 10:
 ```
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 --master_port 8106 finetune.py --name cifar10 --img_shape 32
@@ -23,13 +23,13 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node
 
 The default batch size is 128 and can be adjusted by `--batchsize` no matter how many gpus are used in distributed training.
 
-## Generate images
+## Generating images
 
 ```
 python generate.py --name dataset_name
 ```
 where `dataset_name` is either `cifar10` or `celeba64`.
-## Compute FID
+## Computing FID
 
 ```
 python FID.py --name dataset_name --data_path path_to_dataset
