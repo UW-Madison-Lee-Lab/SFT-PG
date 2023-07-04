@@ -28,7 +28,7 @@ The default batch size is 128 and can be adjusted by `--batchsize` no matter how
 ```
 python generate.py --name dataset_name
 ```
-where `dataset_name` is either `cifar10` or `celeba64`
+where `dataset_name` is either `cifar10` or `celeba64`.
 ## Compute FID
 
 ```
