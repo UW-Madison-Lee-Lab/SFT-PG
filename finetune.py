@@ -19,9 +19,6 @@ unsqueeze3x = lambda x: x[..., None, None, None]
 # os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from model import Model
 from config import diffusion_config
-from torch_ema import ExponentialMovingAverage
-
-
 
 def _map_gpu(gpu):
     if gpu == 'cuda':

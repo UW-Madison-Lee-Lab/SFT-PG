@@ -514,7 +514,7 @@ if __name__ == '__main__':
     parser.add_argument('-name', '--name', type=str, default = 'cifar10', choices=["cifar10", "celeba64"],
                         help='Name of experiment')
     parser.add_argument('-ema', '--ema', help='Whether use ema', default = True)
-    parser.add_argument('-pretrain', '--pretrain', help='Whether use pretrained model', default = True)
+    parser.add_argument('-pretrain', '--pretrain', help='Whether use pretrained model', default = False)
     # fast generation parameters
     parser.add_argument('-approxdiff', '--approxdiff', type=str, default = 'VAR', choices=['STD', 'STEP', 'VAR'], help='approximate diffusion process')
     parser.add_argument('-kappa', '--kappa', type=float, default=1.0, help='factor to be multiplied to sigma')

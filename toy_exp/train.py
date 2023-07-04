@@ -1,23 +1,10 @@
-import os
-import cv2
-import copy
-import math
 import argparse
-import numpy as np
-from time import time
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
 import torch.optim as optim
-import torch.distributed as dist
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn.functional as F
 import ot
 from models import ConditionalModel, value, fstar_tanh
-# import unets
 
 # import os
 # os.environ["CUDA_VISIBLE_DEVICES"]="7"
@@ -29,17 +16,6 @@ from torch.distributions import Normal
 
 DEVICE = 'cpu'
 
-# def sample_batch(size, noise=0.5):
-#     x, _= make_swiss_roll(size, noise=noise)
-#     return x[:, [0, 2]] / 10.0
-# # Plot it
-# data = sample_batch(10**4).T
-
-# name = "points"
-# _imbalanced
-# metadata = get_metadata(name)
-
-# train_set = get_dataset(name, None, metadata)
 from sklearn import datasets
 n_samples = 10000
 noisy_moons = datasets.make_moons(n_samples=n_samples, noise=0.05, random_state = 0)

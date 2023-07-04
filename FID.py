@@ -17,16 +17,12 @@ if __name__ == '__main__':
     parser.add_argument('-schedule', '--schedule', type=str, default = 'quadratic', choices=['linear', 'quadratic'], help='noise level schedules')
 
     parser.add_argument('-gpu', '--gpu', type=int, default=0, help='gpu device')
-    # parser.add_argument('-generated_path', '--generated_path', type = str, default = './generated/ema_celeba64_VAR10quadratic_kappa1.0finetune_generate')
-    # parser.add_argument('-data_path', '--data_path', type = str, default = './generated/celeba')
+    parser.add_argument('-data_path', '--data_path', type=str, required = True)
 
     args = parser.parse_args()
     kwargs = {'batch_size': 50, 'device': torch.device('cuda:{}'.format(args.gpu)), 'dims': 2048}
     variance_schedule = '{}{}'.format(args.S, args.schedule)
-    data_path = '{}_{}{}_kappa{}_generate'.format(args.name, 
-                                             args.approxdiff,
-                                             variance_schedule,
-                                             args.kappa)
+    data_path = args.data_path
     generated_path = '{}_{}{}_kappa{}_generate_finetune'.format(args.name, 
                                              args.approxdiff,
                                              variance_schedule,
