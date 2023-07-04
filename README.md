@@ -36,7 +36,7 @@ python FID.py --name dataset_name --data_path path_to_dataset
 ```
 where `dataset_name` is either `cifar10` or `celeba64`, and `data_path` is the path to the folder of ground truth images.
 
-Some parts of the fine-tuning code are adapted from [FastDPM](https://github.com/FengNiMa/FastDPM_pytorch), where we use FastDPM with the pretrained model as initialization. 
+Some parts of the sampling code are adapted from [FastDPM](https://github.com/FengNiMa/FastDPM_pytorch), where we use FastDPM with the pretrained model as initialization. 
 
 ## For toy dataset
 Please check `./toy_exp` for details.
