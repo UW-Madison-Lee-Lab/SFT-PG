@@ -41,6 +41,8 @@ Some parts of the sampling code are adapted from [FastDPM](https://github.com/Fe
 ## For toy dataset
 Please check `./toy_exp` for details.
 
+
+##
 If you find the code useful, please cite:
 ```
 @article{fan2023optimizing,
