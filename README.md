@@ -1,6 +1,6 @@
 # SFT-PG
 
-Code for [Optimizing DDPM Sampling with Shortcut Fine-Tuning](https://arxiv.org/abs/2301.13362), ICML 2023. 
+Code for [Optimizing DDPM Sampling with Shortcut Fine-Tuning](https://arxiv.org/abs/2301.13362), ICML 2023. We use policy gradient + GAN training to fine-tune diffusion models to generate high quality images within 10 steps!
 
 ## Requirements
 See requirements.txt. Our experiments are conducted on Ubuntu Linux 20.04 with Python 3.8.
