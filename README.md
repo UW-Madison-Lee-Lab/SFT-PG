@@ -21,7 +21,7 @@ For CelebA:
 CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node=4 --master_port 8106 finetune.py --name celeba64 --img_shape 64
 ```
 
-The default batch size is 128 and can be adjusted by `--batchsize` no matter how many gpus are used in distributed training.
+The default overall batch size is 128 and can be adjusted by `--batchsize` no matter how many gpus are used in distributed training.
 
 ## Generating images
 
