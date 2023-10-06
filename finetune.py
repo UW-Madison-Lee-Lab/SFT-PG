@@ -16,6 +16,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torchvision.utils import save_image, make_grid
 unsqueeze3x = lambda x: x[..., None, None, None]
+import random
 # os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from model import Model
 from config import diffusion_config
@@ -442,7 +443,7 @@ if __name__ == '__main__':
 
     # training parameters
     parser.add_argument('-dataset-path', '--dataset-path', type=str, default = './data')
-    parser.add_argument('--n_epochs', type=int, help='Number of epochs', default = 200)
+    parser.add_argument('--n_epochs', type=int, help='Number of epochs', default = 1)
     parser.add_argument('-bs', '--batchsize', type=int, default=128, help='Batchsize of generation')
     parser.add_argument('-gpu', '--gpu', type=str, default='cuda', choices=['cuda']+[str(i) for i in range(16)], help='gpu device')
     parser.add_argument('-n_critic', type=int, default=5, help='number of critic updates per step')
@@ -457,13 +458,16 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    torch.backends.cudnn.benchmark = True
     torch.backends.cudnn.deterministic = True
     # print(args.local_rank)
     args.gpu = "cuda:{}".format(args.local_rank)
     torch.cuda.set_device(args.gpu)
     torch.manual_seed(args.seed + args.local_rank)
     np.random.seed(args.seed + args.local_rank)
+    torch.backends.cudnn.benchmark = False
+    torch.cuda.manual_seed_all(args.seed + args.local_rank)
+    random.seed(args.seed + args.local_rank)
+    os.environ['PYTHONHASHSEED'] = str(args.seed + args.local_rank)
     global map_gpu
     map_gpu = _map_gpu(args.gpu)
 
@@ -573,8 +577,7 @@ if __name__ == '__main__':
                 save_image(make_grid(rescale(Xi)[:64]), fp=os.path.join('generated', '{}.jpg'.format(output_name)))
                 
                 # save checkpoint
-                torch.save(net.state_dict(), '{}finetuned.pt'.format(output_name))
-
+                # torch.save(net.state_dict(), '{}finetuned.pt'.format(output_name))
             else:
                 # generate 64 images for visualization
                 Xi, log_prob_list = VAR_sampling(net, (64, C, H, W),
@@ -585,10 +588,12 @@ if __name__ == '__main__':
                 Xi = Xi[-1]
             
                 # save image at init
-                save_image(make_grid(rescale(Xi)[:64]), fp=os.path.join('generated', '{}init.jpg'.format(output_name)))
-            
+                # save_image(make_grid(rescale(Xi)[:64]), fp=os.path.join('generated', '{}init.jpg'.format(output_name)))
             print('epoch', epoch)
 
         train_one_epoch(net=net, dataloader = train_loader, optimizer = optimizer, f = f, v = v, optimizer_fstar = optimizer_fstar, optimizer_v = optimizer_v, continuous_steps = continuous_steps, diffusion_hyperparams = diffusion_hyperparams, size = (args.batchsize, C, H, W), user_defined_eta=user_defined_eta, kappa = kappa, args = args, train = (epoch >-1), n_critic = args.n_critic, n_generator = args.n_generator)
+        a = next(net.parameters())
+        print(a)
+        torch.save(a, 'test_0.pt')
 
 
